@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendance</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body onload="loadAttendancePage()">
+    <div class="container">
+        <h1>Attendance</h1>
+        <form id="attendanceForm">
+            <label for="className">Class:</label>
+            <input type="text" id="className" placeholder="Enter your class" required />
+
+            <label for="time">Current Time:</label>
+            <input type="text" id="time" readonly />
+
+            <label for="status">Tick Attendance:</label>
+            <input type="checkbox" id="status" />
+
+            <div class="location-display" id="locationInfo">Detecting location...</div>
+
+            <div id="resultMessage"></div>
+
+            <button type="submit">Submit Attendance</button>
+        </form>
+
+        <button class="back-btn" onclick="goBack()">Back to Dashboard</button>
+    </div>
+
+    <script>
+        function loadAttendancePage() {
+            const now = new Date();
+            const klTime = now.toLocaleString("en-MY", {
+                timeZone: "Asia/Kuala_Lumpur",
+                hour12: false
+            });
+            document.getElementById("time").value = klTime;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude.toFixed(5);
+                        const lon = pos.coords.longitude.toFixed(5);
+                        document.getElementById("locationInfo").innerText = `Location: ${lat}, ${lon}`;
+                        document.getElementById("locationInfo").dataset.lat = lat;
+                        document.getElementById("locationInfo").dataset.lon = lon;
+                    },
+                    () => {
+                        document.getElementById("locationInfo").innerText = "Location access denied.";
+                    }
+                );
+            }
+        }
+
+        function goBack() {
+            window.location.href = "dashboard.html";
+        }
+
+        document.getElementById("attendanceForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const className = document.getElementById("className").value.trim();
+            const now = new Date();
+            const today = now.toLocaleDateString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
+            const dayName = now.toLocaleString("en-MY", {
+                weekday: "long",
+                timeZone: "Asia/Kuala_Lumpur"
+            });
+
+            const timeNow = document.getElementById("time").value;
+            const lat = document.getElementById("locationInfo").dataset.lat || "N/A";
+            const lon = document.getElementById("locationInfo").dataset.lon || "N/A";
+
+            const timetable = JSON.parse(localStorage.getItem("studentTimetable")) || {};
+            const todayClasses = timetable[dayName]?.map(c => c.className) || [];
+
+            const resultDiv = document.getElementById("resultMessage");
+
+            if (todayClasses.includes(className)) {
+                const record = JSON.parse(localStorage.getItem("attendanceRecords")) || [];
+                record.push({
+                    className,
+                    date: today,
+                    time: timeNow,
+                    location: `${lat}, ${lon}`,
+                    student: localStorage.getItem("email") || "Unknown"
+                });
+                localStorage.setItem("attendanceRecords", JSON.stringify(record));
+
+                resultDiv.innerHTML = `<p class="success">✅ Attendance submitted!</p>`;
+            } else {
+                resultDiv.innerHTML = `<p class="error">❌ "${className}" not found in today's timetable (${dayName}).</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
