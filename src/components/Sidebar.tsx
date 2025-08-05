@@ -9,6 +9,7 @@ import {
   BookOpen,
   ClipboardList,
   Map,
+  GraduationCap,
   X
 } from 'lucide-react'
 
@@ -24,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'credentials', label: 'Credentials', icon: Award },
     { id: 'resume', label: 'AI Resume', icon: FileText },
+    { id: 'results', label: 'Academic Results', icon: GraduationCap },
     { id: 'health', label: 'Health Passport', icon: Heart },
     { id: 'wellness', label: 'Wellness', icon: Smile },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
