@@ -1,0 +1,152 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getProfile = exports.login = exports.register = void 0;
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const models_1 = require("../models");
+const register = async (req, res) => {
+    try {
+        const { email, name, password } = req.body;
+        // Validation
+        if (!email || !name || !password) {
+            res.status(400).json({
+                success: false,
+                error: 'Email, name, and password are required'
+            });
+            return;
+        }
+        if (password.length < 6) {
+            res.status(400).json({
+                success: false,
+                error: 'Password must be at least 6 characters long'
+            });
+            return;
+        }
+        // Check if user already exists
+        const existingUser = await models_1.User.findOne({ email });
+        if (existingUser) {
+            res.status(400).json({
+                success: false,
+                error: 'User with this email already exists'
+            });
+            return;
+        }
+        // Create new user
+        const user = new models_1.User({
+            email,
+            name,
+            password
+        });
+        await user.save();
+        // Generate JWT token
+        const token = jsonwebtoken_1.default.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            data: {
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name
+                },
+                token
+            }
+        });
+    }
+    catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+exports.register = register;
+const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        // Validation
+        if (!email || !password) {
+            res.status(400).json({
+                success: false,
+                error: 'Email and password are required'
+            });
+            return;
+        }
+        // Find user
+        const user = await models_1.User.findOne({ email });
+        if (!user) {
+            res.status(401).json({
+                success: false,
+                error: 'Invalid email or password'
+            });
+            return;
+        }
+        // Check password
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            res.status(401).json({
+                success: false,
+                error: 'Invalid email or password'
+            });
+            return;
+        }
+        // Generate JWT token
+        const token = jsonwebtoken_1.default.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+        res.json({
+            success: true,
+            message: 'Login successful',
+            data: {
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name
+                },
+                token
+            }
+        });
+    }
+    catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+exports.login = login;
+const getProfile = async (req, res) => {
+    try {
+        const user = await models_1.User.findById(req.user.id).select('-password');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+            return;
+        }
+        res.json({
+            success: true,
+            data: {
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Get profile error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+exports.getProfile = getProfile;
+//# sourceMappingURL=authController.js.map

@@ -1,0 +1,43 @@
+{
+  "name": "blockitin-chatbot-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Blockitin AI Chatbot with Google Sheets integration",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chatbot",
+    "ai",
+    "google-sheets",
+    "academic",
+    "blockchain"
+  ],
+  "author": "Blockitin Team",
+  "license": "MIT",
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "googleapis": "^155.0.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.0",
+    "morgan": "^1.10.1",
+    "openai": "^5.12.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
