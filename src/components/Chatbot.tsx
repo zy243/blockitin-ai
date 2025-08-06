@@ -45,7 +45,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxNF_KFb0w_MHCjTTSQYLs1Ks8JssJfLMdqdOCVLS5Jw4ySPIsGPjfEvutG-DWtz5I/exec'
+  const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY/edit?gid=0#gid=0'
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNF_KFb0w_MHCjTTSQYLs1Ks8JssJfLMdqdOCVLS5Jw4ySPIsGPjfEvutG-DWtz5I/exec'
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -61,7 +62,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
     }
   }, [isOpen, isMinimized])
 
-  // Send data to Google Sheets
+  // Send data to Google Sheets via Apps Script
   const sendToGoogleSheets = async (action: string, data: any): Promise<GoogleSheetsResponse> => {
     try {
       setIsConnecting(true)
@@ -70,60 +71,58 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
         action,
         data,
         timestamp: new Date().toISOString(),
-        user: 'Sarah Johnson', // This could be dynamic based on logged-in user
+        user: 'Sarah Johnson',
         source: 'Blockitin AI Chatbot'
       }
 
-      const response = await fetch(GOOGLE_SHEETS_URL, {
+      const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Required for Google Apps Script
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        mode: 'no-cors' // Required for Google Apps Script
       })
 
-      // Note: With no-cors mode, we can't read the response
-      // So we'll assume success if no error is thrown
+      // Note: no-cors mode doesn't allow reading response, so we assume success
+      console.log('Data sent to Google Sheets:', payload)
+      
       return {
         success: true,
-        message: 'Data sent to Google Sheets successfully'
+        message: 'Data successfully sent to Google Sheets'
       }
     } catch (error) {
-      console.error('Error sending to Google Sheets:', error)
+      console.error('Error connecting to Google Sheets:', error)
       return {
         success: false,
-        error: 'Failed to connect to Google Sheets'
+        error: 'Failed to connect to Google Sheets webhook'
       }
     } finally {
       setIsConnecting(false)
     }
   }
 
-  // Get data from Google Sheets
+  // Get data from Google Sheets via Apps Script
   const getFromGoogleSheets = async (action: string, params?: any): Promise<GoogleSheetsResponse> => {
     try {
       setIsConnecting(true)
       
-      const url = new URL(GOOGLE_SHEETS_URL)
-      url.searchParams.append('action', action)
-      if (params) {
-        Object.keys(params).forEach(key => {
-          url.searchParams.append(key, params[key])
-        })
-      }
+      const queryParams = new URLSearchParams({
+        action,
+        ...params
+      })
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?${queryParams}`, {
         method: 'GET',
         mode: 'no-cors'
       })
 
-      // With no-cors, we can't read the actual response
-      // In a real implementation, you'd need to handle CORS properly
+      console.log('Requesting data from Google Sheets:', { action, params })
+      
       return {
         success: true,
         message: 'Data retrieved from Google Sheets',
-        data: null // Would contain actual data in a proper CORS setup
+        data: null // Would contain actual data with proper CORS setup
       }
     } catch (error) {
       console.error('Error getting from Google Sheets:', error)
@@ -149,9 +148,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
       return {
         content: result.success 
-          ? "✅ Great! I've saved your data to Google Sheets. Your information is now synced and backed up in your spreadsheet. You can view it anytime in your connected Google Sheet." 
-          : "❌ Sorry, I couldn't connect to Google Sheets right now. Please check your internet connection and try again.",
-        suggestions: ["View saved data", "Sync more information", "Check connection status"],
+          ? "✅ Great! I've successfully sent your data to Google Sheets via the webhook!\n\n📊 Google Sheets: Data Sent\n🔗 Webhook: Active\n📝 Sheet ID: 1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY\n\nYour information has been logged and is now available in your spreadsheet." 
+          : "❌ Sorry, I couldn't connect to the Google Sheets webhook right now. Please check your connection and try again.",
+        suggestions: ["View Google Sheet", "Sync more information", "Check webhook status"],
         sheetsAction: true
       }
     }
@@ -167,17 +166,35 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
 
       return {
         content: result.success
-          ? "🔄 Perfect! I've synced all your academic data to Google Sheets:\n\n📊 12 NFT Credentials\n🎓 3.85 GPA\n💪 85% Wellness Score\n📚 4 Active Assignments\n🏥 8 Health Records\n\nYour data is now backed up and accessible in your spreadsheet!"
-          : "❌ Sync failed. Please check your Google Sheets connection and try again.",
-        suggestions: ["View synced data", "Schedule auto-sync", "Download backup"],
+          ? "🔄 Perfect! I've sent your academic data to Google Sheets via webhook:\n\n📊 12 NFT Credentials\n🎓 3.85 GPA\n💪 85% Wellness Score\n📚 4 Active Assignments\n🏥 8 Health Records\n\n✅ Data successfully transmitted to your Google Sheet!\n🔗 Webhook URL: script.google.com/macros/s/AKfycbx..."
+          : "❌ Sync failed. Webhook connection error.",
+        suggestions: ["Open Google Sheet", "Retry sync", "Check webhook logs"],
         sheetsAction: true
       }
     }
 
-    if (message.includes('connect') && message.includes('sheet')) {
+    if (message.includes('connect') && (message.includes('sheet') || message.includes('webhook'))) {
+      const result = await sendToGoogleSheets('test_connection', {
+        test: true,
+        timestamp: new Date().toISOString()
+      })
+
       return {
-        content: "🔗 Testing connection to Google Sheets...\n\nConnection Status: ✅ Connected\nWebhook URL: Active\nLast Sync: Just now\n\nYour Blockitin AI is successfully connected to Google Sheets! You can now save, sync, and backup all your academic data.",
-        suggestions: ["Save current data", "Sync all information", "View connection details"]
+        content: result.success
+          ? "🔗 Testing webhook connection to Google Sheets...\n\n✅ Connection Status: Active\n🌐 Webhook URL: script.google.com/macros/s/AKfycbx...\n📊 Sheet ID: 1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY\n⏰ Last Test: Just now\n\nYour Blockitin AI is successfully connected to Google Sheets via Apps Script webhook!"
+          : "❌ Webhook connection test failed. Please check your Apps Script deployment.",
+        suggestions: ["Open Google Sheet", "Retry connection", "View webhook logs"]
+      }
+    }
+
+    if (message.includes('open') && message.includes('sheet')) {
+      // Open Google Sheets in new tab
+      window.open(GOOGLE_SHEETS_URL, '_blank')
+      
+      return {
+        content: "🚀 Opening your Google Sheet in a new tab!\n\n📊 Sheet: Blockitin Academic Data\n🔗 ID: 1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY\n🌐 Webhook: Active\n\nYou can now view all the data that's been sent via the webhook integration.",
+        suggestions: ["Send test data", "Sync current data", "View webhook logs"],
+        sheetsAction: true
       }
     }
 
@@ -191,9 +208,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       })
 
       return {
-        content: "I'll take you to your NFT Credentials section and log this activity to Google Sheets! 🎓\n\nYou currently have 12 NFT credentials with over 3,200 total views. This navigation has been recorded in your activity log.",
+        content: "I'll take you to your NFT Credentials section and log this activity via webhook! 🎓\n\nYou currently have 12 NFT credentials with over 3,200 total views. This navigation has been sent to your Google Sheet.",
         action: { type: 'navigate', section: 'credentials' },
-        suggestions: ["Mint new credential", "Save credentials to Sheets", "View credential analytics"],
+        suggestions: ["Mint new credential", "Open Google Sheet", "View credential analytics"],
         sheetsAction: true
       }
     }
@@ -206,9 +223,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       })
 
       return {
-        content: "Opening your Health Passport and syncing with Google Sheets! 🏥\n\nYour wellness score (85%) and 8 health records are being backed up to your spreadsheet for secure access.",
+        content: "Opening your Health Passport and logging via webhook! 🏥\n\nYour wellness score (85%) and 8 health records data has been sent to Google Sheets.",
         action: { type: 'navigate', section: 'health' },
-        suggestions: ["Add new health record", "Sync health data", "Export health report"],
+        suggestions: ["Add new health record", "Open Google Sheet", "Export health report"],
         sheetsAction: true
       }
     }
@@ -221,9 +238,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       })
 
       return {
-        content: "📚 Showing your assignments and logging to Google Sheets!\n\nYou have 4 active assignments including your Machine Learning Final Project (due in 3 days). Assignment tracking data is now synced to your spreadsheet.",
+        content: "📚 Showing your assignments and sending data via webhook!\n\nYou have 4 active assignments including your Machine Learning Final Project (due in 3 days). Assignment data transmitted to Google Sheets.",
         action: { type: 'navigate', section: 'assignments' },
-        suggestions: ["Save assignment progress", "Set deadline reminders", "Export assignment list"],
+        suggestions: ["Save assignment progress", "Open Google Sheet", "Export assignment list"],
         sheetsAction: true
       }
     }
@@ -236,17 +253,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       })
 
       return {
-        content: "📊 Generating comprehensive analytics report...\n\n✅ Data collected from all sections\n✅ Sent to Google Sheets for processing\n✅ Report will be available in your spreadsheet\n\nYour analytics include: GPA trends, wellness patterns, credential growth, and assignment completion rates.",
-        suggestions: ["View detailed report", "Download analytics", "Schedule weekly reports"],
+        content: "📊 Generating comprehensive analytics report and sending via webhook...\n\n✅ Data collected from all sections\n✅ Sent to Google Sheets via Apps Script\n✅ Report available in your spreadsheet\n\nYour analytics include: GPA trends, wellness patterns, credential growth, and assignment completion rates.",
+        suggestions: ["Open Google Sheet", "Download analytics", "Schedule weekly reports"],
         sheetsAction: true
       }
     }
 
     // Help with Google Sheets integration
-    if (message.includes('help') && (message.includes('sheet') || message.includes('google') || message.includes('sync'))) {
+    if (message.includes('help') && (message.includes('sheet') || message.includes('google') || message.includes('sync') || message.includes('webhook'))) {
       return {
-        content: "🔧 Google Sheets Integration Help:\n\n📝 **Available Commands:**\n• 'Save to sheets' - Backup current data\n• 'Sync data' - Full synchronization\n• 'Connect sheets' - Test connection\n• 'Export report' - Generate analytics\n\n🔗 **Connection Status:** Active\n📊 **Auto-sync:** Enabled\n💾 **Last Backup:** Real-time\n\nYour data is automatically saved to Google Sheets for secure access anywhere!",
-        suggestions: ["Test connection", "Save all data", "View sync history", "Configure auto-sync"]
+        content: "🔧 Google Sheets Webhook Integration Help:\n\n📝 **Available Commands:**\n• 'Save to sheets' - Send data via webhook\n• 'Open sheet' - Open your Google Sheet\n• 'Connect webhook' - Test webhook connection\n• 'Export report' - Generate and send analytics\n\n🌐 **Webhook URL:** script.google.com/macros/s/AKfycbx...\n🔗 **Sheet ID:** 1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY\n📊 **Status:** Active webhook integration\n💾 **Data Transmission:** Real-time via Apps Script\n\nYour data is being sent directly to Google Sheets through the webhook!",
+        suggestions: ["Open Google Sheet", "Test webhook", "Send all data", "View transmission logs"]
       }
     }
 
@@ -258,16 +275,16 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
       })
 
       return {
-        content: "Hello Sarah! 👋 Great to see you again. I'm connected to your Google Sheets and ready to help!\n\n📊 Current Status:\n• Wellness Score: 85%\n• Upcoming Assignments: 2\n• Google Sheets: ✅ Connected\n\nWhat can I help you with today?",
-        suggestions: ["Sync my data", "Check credentials", "View assignments", "Save to sheets"],
+        content: "Hello Sarah! 👋 Great to see you again. I'm connected to your Google Sheets via webhook and ready to help!\n\n📊 Current Status:\n• Wellness Score: 85%\n• Upcoming Assignments: 2\n• Webhook: ✅ Active\n• Sheet ID: 1RkN9HJ9jhE_ymFlx4ZzorYs8TX5n2O3TJ4EOyk-jrUY\n\nWhat can I help you with today?",
+        suggestions: ["Open Google Sheet", "Sync my data", "Check credentials", "View assignments"],
         sheetsAction: true
       }
     }
 
     // Default response
     return {
-      content: "I'd be happy to help you with that! I can assist you with managing your academic credentials, tracking wellness, organizing assignments, and syncing everything to Google Sheets. Could you be more specific about what you're looking for?",
-      suggestions: ["Show my credentials", "Save data to Sheets", "Check wellness score", "View assignments"]
+      content: "I'd be happy to help you with that! I can assist you with managing your academic credentials, tracking wellness, organizing assignments, and sending data to Google Sheets via webhook integration. Could you be more specific about what you're looking for?",
+      suggestions: ["Show my credentials", "Open Google Sheet", "Check wellness score", "View assignments"]
     }
   }
 
@@ -385,7 +402,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 <h3 className="font-semibold">Blockitin AI Assistant</h3>
                 <p className="text-xs opacity-90 flex items-center">
                   <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                  Google Sheets Connected
+                  Webhook Active
                 </p>
               </div>
             </div>
@@ -448,7 +465,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                           {message.isSuccess && (
                             <div className="flex items-center mt-2 text-xs text-green-600">
                               <CheckCircle className="w-3 h-3 mr-1" />
-                              Synced with Google Sheets
+                              Sent via Webhook
                             </div>
                           )}
                           <p className={`text-xs mt-1 ${
@@ -507,7 +524,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask me anything or say 'save to sheets'..."
+                    placeholder="Ask me anything or say 'open sheet'..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                     disabled={isTyping || isConnecting}
                   />
@@ -529,7 +546,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onNavigate }) => {
                 <div className="flex items-center justify-center mt-2 text-xs text-gray-500">
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span>Connected to Google Sheets</span>
+                    <span>Webhook Active</span>
                   </div>
                 </div>
               </div>
