@@ -1,16 +1,37 @@
 import React, { useState } from 'react'
-import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Download, QrCode, Fingerprint, Camera, Wifi, Smartphone } from 'lucide-react'
+
+interface Course {
+  id: string
+  name: string
+  code: string
+}
+
+interface AttendanceRecord {
+  id: number
+  course: string
+  courseCode: string
+  date: string
+  time: string
+  location: string
+  status: 'present' | 'absent' | 'late'
+  verificationMethod: string
+}
 
 const AttendanceLog: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('all')
+  const [isScanning, setIsScanning] = useState(false)
+  const [isCheckingIn, setIsCheckingIn] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [showBiometric, setShowBiometric] = useState(false)
   
-  const courses = [
+  const courses: Course[] = [
     { id: 'cs101', name: 'Introduction to AI', code: 'CS 101' },
     { id: 'cs201', name: 'Blockchain Development', code: 'CS 201' },
     { id: 'math301', name: 'Advanced Calculus', code: 'MATH 301' },
   ]
 
-  const attendanceRecords = [
+  const attendanceRecords: AttendanceRecord[] = [
     {
       id: 1,
       course: 'Introduction to AI',
@@ -53,7 +74,7 @@ const AttendanceLog: React.FC = () => {
     }
   ]
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch(status) {
       case 'present':
         return <CheckCircle className="w-5 h-5 text-green-500" />
@@ -66,7 +87,7 @@ const AttendanceLog: React.FC = () => {
     }
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     const styles = {
       present: 'bg-green-100 text-green-700',
       absent: 'bg-red-100 text-red-700',
@@ -74,10 +95,96 @@ const AttendanceLog: React.FC = () => {
     }
     
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status]}`}>
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status as keyof typeof styles]}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     )
+  }
+
+  const exportCSV = () => {
+    const headers = ['Course', 'Course Code', 'Date', 'Time', 'Location', 'Status', 'Verification Method']
+    const csv = [
+      headers.join(','), 
+      ...attendanceRecords.map(r => [
+        r.course, 
+        r.courseCode, 
+        r.date, 
+        r.time, 
+        r.location, 
+        r.status, 
+        r.verificationMethod
+      ].join(','))
+    ].join('\n')
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
+  const locationCheckIn = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported by your browser')
+      return
+    }
+    
+    setIsCheckingIn(true)
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        console.log(`Location: ${latitude}, ${longitude}`)
+        
+        // Simulate API call to verify location is within campus bounds
+        setTimeout(() => {
+          setIsCheckingIn(false)
+          alert('Location verified and check-in recorded!')
+        }, 2000)
+      }, 
+      (error) => {
+        setIsCheckingIn(false)
+        alert(`Unable to retrieve location: ${error.message}`)
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    )
+  }
+
+  const scanQRCode = () => {
+    setShowQRScanner(true)
+    setIsScanning(true)
+    
+    // Simulate QR code scanning
+    setTimeout(() => {
+      setIsScanning(false)
+      setShowQRScanner(false)
+      alert('QR Code scanned successfully! Attendance recorded.')
+    }, 3000)
+  }
+
+  const biometricVerification = () => {
+    setShowBiometric(true)
+    
+    // Simulate biometric verification
+    setTimeout(() => {
+      setShowBiometric(false)
+      alert('Biometric verification successful! Attendance recorded.')
+    }, 2500)
+  }
+
+  const wifiCheckIn = () => {
+    // Simulate WiFi-based attendance
+    alert('Connecting to campus WiFi...')
+    setTimeout(() => {
+      alert('WiFi connection verified! Attendance recorded.')
+    }, 1500)
+  }
+
+  const manualCheckIn = () => {
+    const course = prompt('Enter course code:')
+    if (course) {
+      alert(`Manual check-in recorded for ${course}`)
+    }
   }
 
   const attendanceStats = {
@@ -153,8 +260,12 @@ const AttendanceLog: React.FC = () => {
                   <option key={course.id} value={course.id}>{course.name}</option>
                 ))}
               </select>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                Export Report
+              <button
+                onClick={exportCSV}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export Report</span>
               </button>
             </div>
           </div>
@@ -226,20 +337,103 @@ const AttendanceLog: React.FC = () => {
         <h3 className="text-xl font-semibold mb-2">Mark Your Attendance</h3>
         <p className="mb-4 opacity-90">Use one of these methods to verify your presence in class</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
-            <div className="text-2xl mb-2">📱</div>
-            <p className="font-medium">Scan QR Code</p>
+          <button
+            onClick={scanQRCode}
+            disabled={isScanning}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
+            <div className="text-2xl mb-2">
+              {isScanning ? <QrCode className="w-8 h-8 animate-pulse" /> : '📱'}
+            </div>
+            <p className="font-medium">
+              {isScanning ? 'Scanning...' : 'Scan QR Code'}
+            </p>
           </button>
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
-            <div className="text-2xl mb-2">📍</div>
-            <p className="font-medium">Location Check-in</p>
+          
+          <button
+            onClick={locationCheckIn}
+            disabled={isCheckingIn}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
+            <div className="text-2xl mb-2">
+              {isCheckingIn ? <MapPin className="w-8 h-8 animate-pulse" /> : '📍'}
+            </div>
+            <p className="font-medium">
+              {isCheckingIn ? 'Checking...' : 'Location Check-in'}
+            </p>
           </button>
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
-            <div className="text-2xl mb-2">🔐</div>
-            <p className="font-medium">Biometric Verify</p>
+          
+          <button
+            onClick={biometricVerification}
+            disabled={showBiometric}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
+            <div className="text-2xl mb-2">
+              {showBiometric ? <Fingerprint className="w-8 h-8 animate-pulse" /> : '🔐'}
+            </div>
+            <p className="font-medium">
+              {showBiometric ? 'Verifying...' : 'Biometric Verify'}
+            </p>
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <button
+            onClick={wifiCheckIn}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+          >
+            <div className="text-2xl mb-2">📶</div>
+            <p className="font-medium">WiFi Check-in</p>
+          </button>
+          
+          <button
+            onClick={manualCheckIn}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+          >
+            <div className="text-2xl mb-2">✏️</div>
+            <p className="font-medium">Manual Entry</p>
+          </button>
+          
+          <button
+            onClick={() => alert('Camera access requested for facial recognition')}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+          >
+            <div className="text-2xl mb-2">📷</div>
+            <p className="font-medium">Face Recognition</p>
           </button>
         </div>
       </div>
+
+      {/* Status Indicators */}
+      {(isScanning || isCheckingIn || showBiometric) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              {isScanning && (
+                <>
+                  <QrCode className="w-16 h-16 text-indigo-600 mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold mb-2">Scanning QR Code</h3>
+                  <p className="text-gray-600">Point your camera at the QR code</p>
+                </>
+              )}
+              {isCheckingIn && (
+                <>
+                  <MapPin className="w-16 h-16 text-green-600 mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold mb-2">Verifying Location</h3>
+                  <p className="text-gray-600">Checking your current location...</p>
+                </>
+              )}
+              {showBiometric && (
+                <>
+                  <Fingerprint className="w-16 h-16 text-purple-600 mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold mb-2">Biometric Verification</h3>
+                  <p className="text-gray-600">Please place your finger on the sensor</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
