@@ -1,7 +1,25 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { BookOpen, Upload, Award, TrendingUp, FileText, ExternalLink, Shield } from 'lucide-react'
 
 const AcademicPublishing: React.FC = () => {
+  const openPaper = (pub: typeof publications[0]) => {
+    if (pub.doi) {
+      window.open(`https://doi.org/${pub.doi}`, '_blank')
+    } else {
+      alert('Full paper not available yet.')
+    }
+  }
+  const sharePublication = (pub: typeof publications[0]) => {
+    const shareText = `${pub.title} (${pub.type})`
+    if (navigator.share) {
+      navigator.share({ title: pub.title, text: shareText, url: window.location.href })
+    } else {
+      navigator.clipboard.writeText(shareText)
+      alert('Share info copied to clipboard')
+    }
+  }
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   
   const publications = [
@@ -149,11 +167,11 @@ const AcademicPublishing: React.FC = () => {
             </div>
 
             <div className="flex space-x-3">
-              <button className="flex-1 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition-colors flex items-center justify-center space-x-2">
+              <button onClick={() => openPaper(pub)} className="flex-1 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition-colors flex items-center justify-center space-x-2">
                 <FileText className="w-4 h-4" />
                 <span>View Paper</span>
               </button>
-              <button className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2">
+              <button onClick={() => sharePublication(pub)} className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2">
                 <ExternalLink className="w-4 h-4" />
                 <span>Share</span>
               </button>
@@ -195,9 +213,19 @@ const AcademicPublishing: React.FC = () => {
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">Drag and drop your document here</p>
                   <p className="text-sm text-gray-500 mb-4">PDF, DOC, or DOCX (max 10MB)</p>
-                  <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                    Browse Files
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                    {uploadFileName ? uploadFileName : 'Browse Files'}
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setUploadFileName(e.target.files[0].name)
+                      }
+                    }}
+                  />
                 </div>
               </div>
 

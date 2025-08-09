@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { ClipboardList, Clock, Calendar, AlertCircle, CheckCircle, FileText, Upload, Filter } from 'lucide-react'
 
 const AssignmentTracker: React.FC = () => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState(null)
 
-  const assignments = [
+  const [assignments, setAssignments] = useState([
     {
       id: 1,
       title: 'Machine Learning Final Project',
@@ -55,12 +57,12 @@ const AssignmentTracker: React.FC = () => {
       description: '10-page paper on ethical considerations in AI development',
       attachments: 3
     }
-  ]
+  ])
 
   const getDaysUntilDue = (dueDate) => {
     const today = new Date()
     const due = new Date(dueDate)
-    const diffTime = due - today
+    const diffTime = Number(due) - Number(today)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return diffDays
   }
@@ -267,9 +269,19 @@ const AssignmentTracker: React.FC = () => {
               <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">Drag and drop your files here</p>
               <p className="text-sm text-gray-500 mb-4">or</p>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                Browse Files
+              <button onClick={() => fileInputRef.current?.click()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                {uploadFileName ? uploadFileName : 'Browse Files'}
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setUploadFileName(e.target.files[0].name)
+                  }
+                }}
+              />
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -285,7 +297,15 @@ const AssignmentTracker: React.FC = () => {
               >
                 Cancel
               </button>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+              <button
+                onClick={() => {
+                  alert('Assignment submitted successfully!')
+                  // mark as completed
+                  setAssignments(prev => prev.map(a => a.id === selectedAssignment?.id ? { ...a, status: 'completed', progress: 100 } : a))
+                  setShowSubmitModal(false)
+                  setUploadFileName(null)
+                }}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
                 Submit to Blockchain
               </button>
             </div>

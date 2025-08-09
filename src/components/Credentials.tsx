@@ -1,7 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Award, Shield, Eye, Share2, Download, Plus, Filter, Search } from 'lucide-react'
 
 const Credentials: React.FC = () => {
+  const [detailCredential, setDetailCredential] = useState<typeof credentials[0] | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [showMintModal, setShowMintModal] = useState(false)
   const [filter, setFilter] = useState('all')
 
@@ -59,6 +62,30 @@ const Credentials: React.FC = () => {
       case 'award': return 'bg-purple-100 text-purple-700 border-purple-200'
       default: return 'bg-gray-100 text-gray-700 border-gray-200'
     }
+  }
+
+  const viewCredential = (cred: typeof credentials[0]) => {
+    setDetailCredential(cred)
+  }
+
+  const shareCredential = (cred: typeof credentials[0]) => {
+    if (navigator.share) {
+      navigator.share({
+        title: cred.title,
+        text: `Check out my credential: ${cred.title}`,
+        url: window.location.href,
+      })
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Share link copied to clipboard')
+    }
+  }
+
+  const downloadCredential = (cred: typeof credentials[0]) => {
+    const link = document.createElement('a')
+    link.href = cred.image
+    link.download = cred.title.replace(/\s+/g, '-') + '.jpg'
+    link.click()
   }
 
   const filteredCredentials = credentials.filter(cred => {
@@ -169,24 +196,20 @@ const Credentials: React.FC = () => {
               <p className="text-gray-600 mb-2">{credential.issuer}</p>
               <p className="text-sm text-gray-500 mb-4">{credential.description}</p>
               
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <span>Issued: {credential.date}</span>
-                <div className="flex items-center space-x-1">
-                  <Eye className="w-4 h-4" />
-                  <span>{credential.views.toLocaleString()} views</span>
-                </div>
+              <div className="text-sm text-gray-500 mb-4">
+                Issued: {credential.date}
               </div>
               
               <div className="flex space-x-2">
-                <button className="flex-1 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition-colors flex items-center justify-center space-x-2">
+                <button onClick={() => viewCredential(credential)} className="flex-1 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition-colors flex items-center justify-center space-x-2">
                   <Eye className="w-4 h-4" />
                   <span>View</span>
                 </button>
-                <button className="flex-1 bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center space-x-2">
+                <button onClick={() => shareCredential(credential)} className="flex-1 bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center space-x-2">
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
-                <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                <button onClick={() => downloadCredential(credential)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
                   <Download className="w-4 h-4" />
                 </button>
               </div>
@@ -194,6 +217,23 @@ const Credentials: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Details Modal */}
+      {detailCredential && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">{detailCredential.title}</h3>
+            <img src={detailCredential.image} alt={detailCredential.title} className="w-full h-48 object-cover rounded-lg mb-4" />
+            <p className="text-gray-600 mb-2">Issuer: {detailCredential.issuer}</p>
+            <p className="text-gray-600 mb-2">Type: {detailCredential.type}</p>
+            <p className="text-gray-600 mb-4">Issued on {detailCredential.date}</p>
+            <p className="text-gray-700 mb-6">{detailCredential.description}</p>
+            <div className="text-right">
+              <button onClick={() => setDetailCredential(null)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mint Modal */}
       {showMintModal && (
@@ -232,8 +272,11 @@ const Credentials: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Document</label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  <p className="text-gray-600">Drag and drop or click to upload</p>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
+                >
+                  <p className="text-gray-600">{selectedFileName ? selectedFileName : 'Drag and drop or click to upload'}</p>
                 </div>
               </div>
             </div>

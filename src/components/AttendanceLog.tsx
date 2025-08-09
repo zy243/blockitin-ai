@@ -80,6 +80,28 @@ const AttendanceLog: React.FC = () => {
     )
   }
 
+  const exportCSV = () => {
+    const headers = ['Course','Date','Time','Location','Status']
+    const csv = [headers.join(','), ...attendanceRecords.map(r => [r.course, r.date, r.time, r.location, r.status].join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
+  const locationCheckIn = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(() => {
+      alert('Location verified and check-in recorded!')
+    }, () => {
+      alert('Unable to retrieve location.')
+    })
+  }
+
   const attendanceStats = {
     total: 40,
     present: 35,
@@ -153,7 +175,9 @@ const AttendanceLog: React.FC = () => {
                   <option key={course.id} value={course.id}>{course.name}</option>
                 ))}
               </select>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+              <button
+                onClick={exportCSV}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
                 Export Report
               </button>
             </div>
@@ -225,18 +249,13 @@ const AttendanceLog: React.FC = () => {
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
         <h3 className="text-xl font-semibold mb-2">Mark Your Attendance</h3>
         <p className="mb-4 opacity-90">Use one of these methods to verify your presence in class</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
-            <div className="text-2xl mb-2">📱</div>
-            <p className="font-medium">Scan QR Code</p>
-          </button>
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <button
+            onClick={locationCheckIn}
+            className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+          >
             <div className="text-2xl mb-2">📍</div>
             <p className="font-medium">Location Check-in</p>
-          </button>
-          <button className="bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors">
-            <div className="text-2xl mb-2">🔐</div>
-            <p className="font-medium">Biometric Verify</p>
           </button>
         </div>
       </div>

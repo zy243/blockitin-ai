@@ -25,6 +25,15 @@ interface AcademicResult {
 }
 
 const AcademicResults: React.FC = () => {
+  const shareResult = (result: AcademicResult) => {
+    const shareText = `${result.course} (${result.courseCode}) - Grade: ${result.grade}`
+    if (navigator.share) {
+      navigator.share({ title: 'Academic Result', text: shareText, url: window.location.href })
+    } else {
+      navigator.clipboard.writeText(shareText)
+      alert('Result details copied to clipboard.')
+    }
+  }
   const [results, setResults] = useState<AcademicResult[]>([
     {
       id: '1',
@@ -458,7 +467,9 @@ const AcademicResults: React.FC = () => {
                       >
                         <Download className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900 p-1 rounded" title="Share result">
+                      <button
+                        onClick={() => shareResult(result)}
+                        className="text-gray-600 hover:text-gray-900 p-1 rounded" title="Share result">
                         <Share2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -563,6 +574,8 @@ const AcademicResults: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Professor</label>
                   <input
                     type="text"
+                    pattern="[A-Za-z\s\.']+"
+                    title="Only letters, spaces, periods and apostrophes are allowed"
                     value={formData.professor || ''}
                     onChange={(e) => handleInputChange('professor', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"

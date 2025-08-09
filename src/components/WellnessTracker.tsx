@@ -2,6 +2,10 @@ import React, { useState } from 'react'
 import { Smile, Frown, Meh, Moon, Activity, Brain, Calendar } from 'lucide-react'
 
 const WellnessTracker: React.FC = () => {
+  const [sleepHours, setSleepHours] = useState<number | ''>('')
+  const [stressLevel, setStressLevel] = useState<number | ''>('')
+  const [notes, setNotes] = useState('')
+  const [entries, setEntries] = useState<typeof weeklyData>(weeklyData)
   const [selectedMood, setSelectedMood] = useState(null)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   
@@ -74,7 +78,8 @@ const WellnessTracker: React.FC = () => {
               min="0" 
               max="24" 
               step="0.5"
-              placeholder="8"
+              value={sleepHours}
+              onChange={(e) => setSleepHours(e.target.value === '' ? '' : Number(e.target.value))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
@@ -88,7 +93,8 @@ const WellnessTracker: React.FC = () => {
               type="number" 
               min="1" 
               max="10"
-              placeholder="5"
+              value={stressLevel}
+              onChange={(e) => setStressLevel(e.target.value === '' ? '' : Number(e.target.value))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
@@ -97,13 +103,36 @@ const WellnessTracker: React.FC = () => {
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
           <textarea 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             placeholder="How was your day? Any specific events affecting your mood?"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             rows={3}
           />
         </div>
 
-        <button className="mt-6 w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+        <button
+          onClick={() => {
+            if (!selectedMood) {
+              alert('Please select your mood for today.')
+              return
+            }
+            const newEntry = {
+              day: new Date().toLocaleDateString('en-US', { weekday: 'short' }),
+              mood: selectedMood,
+              sleep: sleepHours || 0,
+              stress: stressLevel || 0,
+            }
+            setEntries(prev => {
+              const updated = [...prev.slice(1), newEntry] // simple rolling update
+              return updated
+            })
+            setSleepHours('')
+            setStressLevel('')
+            setNotes('')
+            alert('Entry saved!')
+          }}
+          className="mt-6 w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors">
           Save Today's Entry
         </button>
       </div>
@@ -113,7 +142,7 @@ const WellnessTracker: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">This Week's Overview</h3>
         
         <div className="grid grid-cols-7 gap-2 mb-6">
-          {weeklyData.map((day) => (
+          {entries.map((day) => (
             <div key={day.day} className="text-center">
               <p className="text-sm text-gray-600 mb-2">{day.day}</p>
               <div className={`w-12 h-12 rounded-full ${getMoodColor(day.mood)} mx-auto mb-2`}></div>

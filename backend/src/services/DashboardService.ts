@@ -1,63 +1,75 @@
-import { v4 as uuidv4 } from 'uuid'
-import { GoogleSheetsService } from './GoogleSheetsService'
+import { GoogleSheetsService } from './GoogleSheetsService';
+import { mockDatabase, Credential, HealthRecord, Publication, Assignment } from './mockDatabase';
+
+function simpleUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
 export interface DashboardOverview {
-  userId: string
+  userId: string;
   stats: {
-    nftCredentials: number
-    resumeViews: number
-    healthRecords: number
-    wellnessScore: number
-    assignments: number
-    publications: number
-    attendanceRate: number
-    gpa: number
-  }
+    nftCredentials: number;
+    resumeViews: number;
+    healthRecords: number;
+    wellnessScore: number;
+    assignments: number;
+    publications: number;
+    attendanceRate: number;
+    gpa: number;
+  };
   recentActivity: Array<{
-    id: string
-    type: string
-    title: string
-    time: string
-    section: string
-  }>
+    id: string;
+    type: string;
+    title: string;
+    time: string;
+    section: string;
+  }>;
   quickActions: Array<{
-    id: string
-    title: string
-    description: string
-    action: string
-    section: string
-  }>
+    id: string;
+    title: string;
+    description: string;
+    action: string;
+    section: string;
+  }>;
 }
 
 export class DashboardService {
-  private sheetsService: GoogleSheetsService
+  private sheetsService: GoogleSheetsService;
 
   constructor() {
-    this.sheetsService = new GoogleSheetsService()
+    this.sheetsService = new GoogleSheetsService();
   }
 
   // ===== DASHBOARD OVERVIEW =====
   async getDashboardOverview(userId: string): Promise<DashboardOverview> {
-    // Log dashboard access
     await this.sheetsService.sendToSheets({
       action: 'dashboard_access',
       data: { userId, section: 'overview', timestamp: new Date().toISOString() },
       userId,
       timestamp: new Date().toISOString(),
       source: 'Dashboard Backend'
-    })
+    });
+
+    const userCredentials = Array.from(mockDatabase.credentials.values()).filter(c => c.userId === userId);
+    const userHealthRecords = Array.from(mockDatabase.healthRecords.values()).filter(h => h.userId === userId);
+    const userAssignments = Array.from(mockDatabase.assignments.values()).filter(a => a.userId === userId);
+    const userPublications = Array.from(mockDatabase.publications.values()).filter(p => p.userId === userId);
+    const userAttendance = Array.from(mockDatabase.attendance.values()).filter(a => a.userId === userId);
 
     return {
       userId,
       stats: {
-        nftCredentials: 12,
-        resumeViews: 234,
-        healthRecords: 8,
-        wellnessScore: 85,
-        assignments: 4,
-        publications: 3,
-        attendanceRate: 92,
-        gpa: 3.85
+        nftCredentials: userCredentials.length,
+        resumeViews: 234, // Mocked
+        healthRecords: userHealthRecords.length,
+        wellnessScore: 85, // Mocked
+        assignments: userAssignments.length,
+        publications: userPublications.length,
+        attendanceRate: userAttendance.length > 0 ? (userAttendance.filter(a => a.status === 'present').length / userAttendance.length) * 100 : 0,
+        gpa: 3.85 // Mocked
       },
       recentActivity: [
         {
@@ -66,27 +78,6 @@ export class DashboardService {
           title: 'Computer Science Degree NFT Minted',
           time: '2 hours ago',
           section: 'credentials'
-        },
-        {
-          id: 'activity-2',
-          type: 'health',
-          title: 'COVID-19 Vaccination Record Uploaded',
-          time: '1 day ago',
-          section: 'health'
-        },
-        {
-          id: 'activity-3',
-          type: 'attendance',
-          title: 'Attended Advanced AI Lecture',
-          time: '2 days ago',
-          section: 'attendance'
-        },
-        {
-          id: 'activity-4',
-          type: 'publish',
-          title: 'Research Paper Published',
-          time: '1 week ago',
-          section: 'publishing'
         }
       ],
       quickActions: [
@@ -96,516 +87,287 @@ export class DashboardService {
           description: 'Convert your achievements to NFTs',
           action: 'mint_credential',
           section: 'credentials'
-        },
-        {
-          id: 'action-2',
-          title: 'Update Resume',
-          description: 'AI-powered resume builder',
-          action: 'generate_resume',
-          section: 'resume'
-        },
-        {
-          id: 'action-3',
-          title: 'Health Check-in',
-          description: 'Update wellness status',
-          action: 'wellness_checkin',
-          section: 'wellness'
         }
       ]
-    }
+    };
   }
 
   // ===== NFT CREDENTIALS =====
   async getCredentials(userId: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_credentials',
-      data: { userId, section: 'credentials' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const userCredentials = Array.from(mockDatabase.credentials.values()).filter(c => c.userId === userId);
     return {
-      total: 12,
-      verified: 11,
-      pending: 1,
-      totalViews: 3247,
-      credentials: [
-        {
-          id: 'cred-1',
-          title: 'Bachelor of Computer Science',
-          institution: 'MIT',
-          date: '2024-05-15',
-          type: 'degree',
-          status: 'verified',
-          views: 1247,
-          nftAddress: '0x1234...5678',
-          ipfsHash: 'QmX1Y2Z3...'
-        },
-        {
-          id: 'cred-2',
-          title: 'AWS Solutions Architect',
-          institution: 'Amazon Web Services',
-          date: '2024-03-20',
-          type: 'certification',
-          status: 'verified',
-          views: 892,
-          nftAddress: '0x2345...6789',
-          ipfsHash: 'QmA2B3C4...'
-        },
-        {
-          id: 'cred-3',
-          title: 'Machine Learning Specialization',
-          institution: 'Stanford University',
-          date: '2024-01-10',
-          type: 'certificate',
-          status: 'verified',
-          views: 654,
-          nftAddress: '0x3456...7890',
-          ipfsHash: 'QmD5E6F7...'
-        }
-      ]
-    }
+      total: userCredentials.length,
+      verified: userCredentials.filter(c => c.status === 'verified').length,
+      pending: userCredentials.filter(c => c.status === 'pending').length,
+      credentials: userCredentials
+    };
   }
 
   async mintCredential(data: any) {
-    const credentialId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'mint_credential',
-      data: { ...data, credentialId, timestamp: new Date().toISOString() },
+    const credentialId = simpleUUID();
+    const newCredential: Credential = {
+      id: credentialId,
       userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
+      title: data.title,
+      institution: data.institution,
+      date: data.date,
+      type: data.type,
+      status: 'minting',
+      views: 0
+    };
+    mockDatabase.credentials.set(credentialId, newCredential);
+
+    // Simulate minting process
+    // @ts-ignore
+    setTimeout(() => {
+      const mintedCredential = mockDatabase.credentials.get(credentialId);
+      if (mintedCredential) {
+        mintedCredential.status = 'verified';
+        mintedCredential.nftAddress = `0x${simpleUUID().replace(/-/g, '')}`;
+        mintedCredential.ipfsHash = `Qm${simpleUUID().replace(/-/g, '')}`;
+      }
+    }, 30000); // 30 seconds delay
 
     return {
       id: credentialId,
       status: 'minting',
       transactionHash: '0xabcd1234...',
-      estimatedTime: '5-10 minutes',
+      estimatedTime: '30 seconds',
       message: 'NFT credential is being minted on the blockchain'
-    }
+    };
   }
 
   async verifyCredential(credentialId: string) {
-    return {
-      id: credentialId,
-      verified: true,
-      verificationDate: new Date().toISOString(),
-      blockchainHash: '0x9876...5432',
-      issuer: 'MIT',
-      recipient: '0x1111...2222'
+    const credential = mockDatabase.credentials.get(credentialId);
+    if (credential && credential.status === 'verified') {
+      return {
+        id: credentialId,
+        verified: true,
+        verificationDate: new Date().toISOString(),
+        blockchainHash: credential.nftAddress,
+        issuer: credential.institution,
+        recipient: '0x1111...2222'
+      };
     }
+    return { id: credentialId, verified: false };
   }
 
   // ===== AI RESUME BUILDER =====
   async getResume(userId: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_resume',
-      data: { userId, section: 'resume' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
+    // This part will remain mostly mocked as it depends on external AI services.
+    // However, we can pull some data from our mock DB.
+    const user = mockDatabase.users.get(userId);
+    const userCredentials = Array.from(mockDatabase.credentials.values()).filter(c => c.userId === userId && c.type === 'degree');
+    const education = userCredentials.map(c => ({
+        degree: c.title,
+        institution: c.institution,
+        year: new Date(c.date).getFullYear().toString(),
+        gpa: '3.85/4.0' // Mocked
+    }));
 
     return {
-      id: 'resume-1',
-      userId,
-      versions: 5,
-      lastUpdated: '2024-01-15T10:30:00Z',
-      views: 234,
-      downloads: 45,
-      aiOptimizations: 12,
-      personalInfo: {
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@email.com',
-        phone: '+1 (555) 123-4567',
-        location: 'Boston, MA',
-        linkedin: 'linkedin.com/in/sarahjohnson',
-        github: 'github.com/sarahjohnson'
-      },
-      summary: 'Innovative Computer Science graduate with expertise in AI/ML and full-stack development...',
-      experience: [
-        {
-          title: 'Software Engineering Intern',
-          company: 'Google',
-          duration: 'Jun 2023 - Aug 2023',
-          description: 'Developed machine learning models for search optimization...'
-        }
-      ],
-      education: [
-        {
-          degree: 'Bachelor of Computer Science',
-          institution: 'MIT',
-          year: '2024',
-          gpa: '3.85/4.0'
-        }
-      ],
-      skills: ['Python', 'JavaScript', 'React', 'Machine Learning', 'AWS'],
-      projects: [
-        {
-          name: 'AI-Powered Study Assistant',
-          description: 'Built a chatbot using NLP to help students with coursework',
-          technologies: ['Python', 'TensorFlow', 'React']
-        }
-      ]
+        id: 'resume-1',
+        userId,
+        // ... other resume data
+        personalInfo: {
+            name: user?.name,
+            email: user?.email,
+            // ...
+        },
+        education,
+        // ...
     }
   }
 
   async generateResume(data: any) {
-    const resumeId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'generate_resume',
-      data: { ...data, resumeId, timestamp: new Date().toISOString() },
-      userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const resumeId = simpleUUID();
+    // AI generation is mocked
     return {
       id: resumeId,
       status: 'generated',
       aiSuggestions: [
         'Added quantified achievements to increase impact',
         'Optimized keywords for ATS compatibility',
-        'Restructured experience section for better flow'
       ],
       downloadUrl: `/api/dashboard/resume/${resumeId}/download`,
-      previewUrl: `/api/dashboard/resume/${resumeId}/preview`
-    }
+    };
   }
 
   async optimizeResume(userId: string, jobDescription: string, resumeData: any) {
-    await this.sheetsService.sendToSheets({
-      action: 'optimize_resume',
-      data: { userId, jobDescription, resumeData, timestamp: new Date().toISOString() },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    // AI optimization is mocked
     return {
       matchScore: 87,
       optimizations: [
         'Added "cloud computing" keyword 3 times',
-        'Emphasized leadership experience',
-        'Highlighted relevant Python projects'
       ],
-      missingKeywords: ['Docker', 'Kubernetes', 'CI/CD'],
-      suggestions: [
-        'Add more quantified results',
-        'Include specific technologies mentioned in job posting',
-        'Expand on team collaboration experience'
-      ]
-    }
+      missingKeywords: ['Docker', 'Kubernetes'],
+    };
   }
+
 
   // ===== HEALTH PASSPORT =====
   async getHealthRecords(userId: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_health_records',
-      data: { userId, section: 'health' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const userHealthRecords = Array.from(mockDatabase.healthRecords.values()).filter(h => h.userId === userId);
     return {
       userId,
-      totalRecords: 8,
-      wellnessScore: 85,
-      lastCheckup: '2024-01-10',
-      records: [
-        {
-          id: 'health-1',
-          type: 'vaccination',
-          title: 'COVID-19 Vaccination',
-          date: '2024-01-15',
-          provider: 'Campus Health Center',
-          status: 'verified',
-          shared: false
-        },
-        {
-          id: 'health-2',
-          type: 'checkup',
-          title: 'Annual Physical Exam',
-          date: '2024-01-10',
-          provider: 'Dr. Smith Medical',
-          status: 'verified',
-          shared: true
-        },
-        {
-          id: 'health-3',
-          type: 'lab',
-          title: 'Blood Work Panel',
-          date: '2023-12-20',
-          provider: 'LabCorp',
-          status: 'verified',
-          shared: false
-        }
-      ],
-      emergencyContacts: [
-        {
-          name: 'John Johnson',
-          relationship: 'Father',
-          phone: '+1 (555) 987-6543'
-        }
-      ],
-      allergies: ['Peanuts', 'Shellfish'],
-      medications: ['Vitamin D3', 'Multivitamin']
-    }
+      totalRecords: userHealthRecords.length,
+      wellnessScore: 85, // Mocked
+      lastCheckup: '2024-01-10', // Mocked
+      records: userHealthRecords
+    };
   }
 
   async uploadHealthRecord(data: any) {
-    const recordId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'upload_health_record',
-      data: { ...data, recordId, timestamp: new Date().toISOString() },
-      userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
+    const recordId = simpleUUID();
+    const newRecord: HealthRecord = {
+        id: recordId,
+        userId: data.userId,
+        type: data.type,
+        title: data.title,
+        date: data.date,
+        provider: data.provider,
+        status: 'uploaded',
+        shared: false,
+        encrypted: true,
+        ipfsHash: `Qm${simpleUUID().replace(/-/g, '')}`
+    };
+    mockDatabase.healthRecords.set(recordId, newRecord);
 
     return {
       id: recordId,
       status: 'uploaded',
       encrypted: true,
-      ipfsHash: 'QmH3A4L5T6...',
+      ipfsHash: newRecord.ipfsHash,
       message: 'Health record uploaded and encrypted successfully'
-    }
+    };
   }
 
   async shareHealthRecord(recordId: string, shareWith: string, permissions: string[]) {
-    await this.sheetsService.sendToSheets({
-      action: 'share_health_record',
-      data: { recordId, shareWith, permissions, timestamp: new Date().toISOString() },
-      userId: 'system',
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const record = mockDatabase.healthRecords.get(recordId);
+    if(record){
+        record.shared = true;
+    }
     return {
-      shareId: uuidv4(),
+      shareId: simpleUUID(),
       recordId,
       sharedWith: shareWith,
       permissions,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       accessLink: `https://health.blockitin.ai/shared/${recordId}`
-    }
+    };
   }
 
   async calculateWellnessScore(userId: string) {
+    const userWellnessData = Array.from(mockDatabase.wellnessCheckins.values()).filter(w => w.userId === userId);
+    if (userWellnessData.length === 0) {
+        return { userId, currentScore: 0, previousScore: 0, trend: 'no_data' };
+    }
+    const latestWellness = userWellnessData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const score = Math.floor((latestWellness.mood + latestWellness.energy + (6 - latestWellness.stress) + latestWellness.sleep) / 4 * 20);
     return {
       userId,
-      currentScore: 85,
-      previousScore: 82,
-      trend: 'improving',
-      factors: {
-        physical: 88,
-        mental: 82,
-        sleep: 85,
-        nutrition: 84,
-        exercise: 87
-      },
-      recommendations: [
-        'Increase daily water intake',
-        'Add 15 minutes of meditation',
-        'Maintain consistent sleep schedule'
-      ]
-    }
+      currentScore: score,
+      previousScore: score - 5, // Mocked
+      trend: 'improving', // Mocked
+    };
   }
 
   // ===== MOOD & WELLNESS TRACKER =====
   async getWellnessData(userId: string, days: number) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_wellness_data',
-      data: { userId, days, section: 'wellness' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const userWellnessData = Array.from(mockDatabase.wellnessCheckins.values()).filter(w => w.userId === userId);
     return {
       userId,
       period: days,
-      averageScore: 85,
-      checkins: Array.from({ length: days }, (_, i) => ({
-        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        mood: Math.floor(Math.random() * 5) + 1,
-        energy: Math.floor(Math.random() * 5) + 1,
-        stress: Math.floor(Math.random() * 5) + 1,
-        sleep: Math.floor(Math.random() * 10) + 1
-      })),
-      insights: [
-        'Your mood has improved 15% this week',
-        'Sleep quality correlates with energy levels',
-        'Stress levels are lowest on weekends'
-      ]
-    }
+      averageScore: 85, // Mocked
+      checkins: userWellnessData,
+    };
   }
 
   async recordWellnessCheckin(data: any) {
-    const checkinId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'wellness_checkin',
-      data: { ...data, checkinId, timestamp: new Date().toISOString() },
+    const checkinId = simpleUUID();
+    const newCheckin = {
+      id: checkinId,
       userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+      date: new Date().toISOString(),
+      mood: data.mood,
+      energy: data.energy,
+      stress: data.stress,
+      sleep: data.sleep,
+      notes: data.notes
+    };
+    mockDatabase.wellnessCheckins.set(checkinId, newCheckin);
+    const wellnessScore = Math.floor((data.mood + data.energy + (6 - data.stress) + data.sleep) / 4 * 20);
     return {
       id: checkinId,
       status: 'recorded',
-      wellnessScore: Math.floor((data.mood + data.energy + (6 - data.stress) + data.sleep) / 4 * 20),
+      wellnessScore,
       message: 'Wellness check-in recorded successfully'
-    }
+    };
   }
 
   // ===== ATTENDANCE LOG =====
   async getAttendanceLog(userId: string, semester: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_attendance',
-      data: { userId, semester, section: 'attendance' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
-    return {
-      userId,
-      semester,
-      overallRate: 92,
-      totalClasses: 120,
-      attended: 110,
-      courses: [
-        {
-          id: 'course-1',
-          name: 'Advanced Machine Learning',
-          code: 'CS 6.867',
-          attendanceRate: 95,
-          totalClasses: 30,
-          attended: 28,
-          professor: 'Dr. Johnson'
-        },
-        {
-          id: 'course-2',
-          name: 'Distributed Systems',
-          code: 'CS 6.824',
-          attendanceRate: 90,
-          totalClasses: 25,
-          attended: 22,
-          professor: 'Dr. Smith'
-        }
-      ],
-      recentAttendance: [
-        {
-          date: '2024-01-15',
-          course: 'Advanced Machine Learning',
-          status: 'present',
-          time: '10:00 AM'
-        },
-        {
-          date: '2024-01-14',
-          course: 'Distributed Systems',
-          status: 'present',
-          time: '2:00 PM'
-        }
-      ]
-    }
+      const userAttendance = Array.from(mockDatabase.attendance.values()).filter(a => a.userId === userId);
+      return {
+          userId,
+          semester,
+          overallRate: userAttendance.length > 0 ? (userAttendance.filter(a => a.status === 'present').length / userAttendance.length) * 100 : 0,
+          totalClasses: userAttendance.length,
+          attended: userAttendance.filter(a => a.status === 'present').length,
+          courses: [], // Mocked
+          recentAttendance: userAttendance.slice(-5)
+      };
   }
 
   async recordAttendance(data: any) {
-    const attendanceId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'record_attendance',
-      data: { ...data, attendanceId, timestamp: new Date().toISOString() },
-      userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const attendanceId = simpleUUID();
+    const newAttendance = {
+        id: attendanceId,
+        userId: data.userId,
+        course: data.course,
+        date: data.date,
+        time: data.time,
+        status: data.status,
+    };
+    mockDatabase.attendance.set(attendanceId, newAttendance);
     return {
       id: attendanceId,
       status: 'recorded',
       course: data.course,
       date: data.date,
       message: 'Attendance recorded successfully'
-    }
+    };
   }
 
   // ===== ACADEMIC PUBLISHING =====
   async getPublications(userId: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_publications',
-      data: { userId, section: 'publishing' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const userPublications = Array.from(mockDatabase.publications.values()).filter(p => p.userId === userId);
     return {
-      userId,
-      totalPublications: 3,
-      totalCitations: 47,
-      hIndex: 2,
-      publications: [
-        {
-          id: 'pub-1',
-          title: 'Deep Learning Approaches for Student Performance Prediction',
-          authors: ['Sarah Johnson', 'Dr. Michael Chen'],
-          journal: 'Journal of Educational Technology',
-          status: 'published',
-          date: '2024-01-15',
-          citations: 23,
-          doi: '10.1000/182'
-        },
-        {
-          id: 'pub-2',
-          title: 'Blockchain-Based Academic Credential Verification',
-          authors: ['Sarah Johnson', 'Dr. Lisa Wang', 'John Smith'],
-          journal: 'IEEE Transactions on Education',
-          status: 'under_review',
-          date: '2023-12-10',
-          citations: 0
-        },
-        {
-          id: 'pub-3',
-          title: 'AI-Powered Campus Navigation Systems',
-          authors: ['Sarah Johnson'],
-          journal: 'ACM Computing Surveys',
-          status: 'draft',
-          date: '2023-11-20',
-          citations: 0
-        }
-      ]
-    }
+        userId,
+        totalPublications: userPublications.length,
+        publications: userPublications
+    };
   }
 
   async submitPublication(data: any) {
-    const publicationId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'submit_publication',
-      data: { ...data, publicationId, timestamp: new Date().toISOString() },
-      userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const publicationId = simpleUUID();
+    const newPublication: Publication = {
+        id: publicationId,
+        userId: data.userId,
+        title: data.title,
+        authors: data.authors,
+        journal: data.journal,
+        status: 'submitted',
+        date: new Date().toISOString(),
+        citations: 0
+    };
+    mockDatabase.publications.set(publicationId, newPublication);
     return {
       id: publicationId,
       status: 'submitted',
       submissionDate: new Date().toISOString(),
-      trackingNumber: `PUB-${Date.now()}`,
-      estimatedReviewTime: '4-6 weeks',
       message: 'Publication submitted successfully'
-    }
+    };
   }
 
   // ===== WALLET CONNECTION =====
@@ -654,100 +416,49 @@ export class DashboardService {
 
   // ===== ASSIGNMENT TRACKER =====
   async getAssignments(userId: string, status: string) {
-    await this.sheetsService.sendToSheets({
-      action: 'view_assignments',
-      data: { userId, status, section: 'assignments' },
-      userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
-    const allAssignments = [
-      {
-        id: 'assign-1',
-        title: 'Machine Learning Final Project',
-        course: 'CS 6.867',
-        dueDate: '2024-01-20',
-        status: 'in_progress',
-        priority: 'high',
-        progress: 75,
-        estimatedHours: 20,
-        spentHours: 15
-      },
-      {
-        id: 'assign-2',
-        title: 'Distributed Systems Paper',
-        course: 'CS 6.824',
-        dueDate: '2024-01-25',
-        status: 'not_started',
-        priority: 'medium',
-        progress: 0,
-        estimatedHours: 15,
-        spentHours: 0
-      },
-      {
-        id: 'assign-3',
-        title: 'Algorithm Analysis Homework',
-        course: 'CS 6.046',
-        dueDate: '2024-01-18',
-        status: 'completed',
-        priority: 'low',
-        progress: 100,
-        estimatedHours: 8,
-        spentHours: 6
-      }
-    ]
-
-    const filteredAssignments = status === 'all' 
-      ? allAssignments 
-      : allAssignments.filter(a => a.status === status)
-
+    let userAssignments = Array.from(mockDatabase.assignments.values()).filter(a => a.userId === userId);
+    if (status !== 'all') {
+        userAssignments = userAssignments.filter(a => a.status === status);
+    }
     return {
       userId,
-      total: allAssignments.length,
-      completed: allAssignments.filter(a => a.status === 'completed').length,
-      inProgress: allAssignments.filter(a => a.status === 'in_progress').length,
-      notStarted: allAssignments.filter(a => a.status === 'not_started').length,
-      assignments: filteredAssignments
-    }
+      total: userAssignments.length,
+      assignments: userAssignments
+    };
   }
 
   async createAssignment(data: any) {
-    const assignmentId = uuidv4()
-    
-    await this.sheetsService.sendToSheets({
-      action: 'create_assignment',
-      data: { ...data, assignmentId, timestamp: new Date().toISOString() },
-      userId: data.userId,
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const assignmentId = simpleUUID();
+    const newAssignment: Assignment = {
+        id: assignmentId,
+        userId: data.userId,
+        title: data.title,
+        course: data.course,
+        dueDate: data.dueDate,
+        status: 'not_started',
+        priority: data.priority,
+        progress: 0,
+        estimatedHours: data.estimatedHours,
+        spentHours: 0
+    };
+    mockDatabase.assignments.set(assignmentId, newAssignment);
     return {
       id: assignmentId,
-      ...data,
-      status: 'created',
-      progress: 0,
-      spentHours: 0,
+      ...newAssignment,
       message: 'Assignment created successfully'
-    }
+    };
   }
 
   async updateAssignment(assignmentId: string, updates: any) {
-    await this.sheetsService.sendToSheets({
-      action: 'update_assignment',
-      data: { assignmentId, updates, timestamp: new Date().toISOString() },
-      userId: updates.userId || 'system',
-      timestamp: new Date().toISOString(),
-      source: 'Dashboard Backend'
-    })
-
+    const assignment = mockDatabase.assignments.get(assignmentId);
+    if (assignment) {
+        Object.assign(assignment, updates);
+    }
     return {
       id: assignmentId,
-      ...updates,
-      lastUpdated: new Date().toISOString(),
+      ...assignment,
       message: 'Assignment updated successfully'
-    }
+    };
   }
 
   // ===== CAMPUS MAP =====
@@ -904,7 +615,7 @@ export class DashboardService {
     return {
       userId,
       format,
-      transcriptId: uuidv4(),
+      transcriptId: simpleUUID(),
       downloadUrl: `/api/dashboard/results/transcript/${userId}/download`,
       generatedAt: new Date().toISOString(),
       message: 'Transcript generated successfully'
@@ -1004,7 +715,7 @@ export class DashboardService {
     })
 
     return {
-      exportId: uuidv4(),
+      exportId: simpleUUID(),
       userId,
       sections,
       format,

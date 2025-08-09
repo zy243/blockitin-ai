@@ -43,7 +43,7 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard onNavigate={setCurrentView} />
       case 'credentials':
         return <Credentials />
       case 'resume':
@@ -63,7 +63,7 @@ function App() {
       case 'results':
         return <AcademicResults />
       default:
-        return <Dashboard />
+        return <Dashboard onNavigate={setCurrentView} />
     }
   }
 

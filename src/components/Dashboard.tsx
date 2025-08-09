@@ -1,7 +1,9 @@
 import React from 'react'
 import { Award, FileText, Heart, TrendingUp, Calendar, BookOpen } from 'lucide-react'
 
-const Dashboard: React.FC = () => {
+interface DashboardProps { onNavigate: (view: 'credentials' | 'resume' | 'health') => void }
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const stats = [
     { label: 'NFT Credentials', value: '12', icon: Award, color: 'bg-blue-500' },
     { label: 'Resume Views', value: '234', icon: FileText, color: 'bg-green-500' },
@@ -59,19 +61,19 @@ const Dashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <button className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
+        <button onClick={() => onNavigate('credentials')} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
           <Award className="w-8 h-8 mb-3" />
           <h4 className="font-semibold mb-1">Mint New Credential</h4>
           <p className="text-sm opacity-90">Convert your achievements to NFTs</p>
         </button>
         
-        <button className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
+        <button onClick={() => onNavigate('resume')} className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
           <FileText className="w-8 h-8 mb-3" />
           <h4 className="font-semibold mb-1">Update Resume</h4>
           <p className="text-sm opacity-90">AI-powered resume builder</p>
         </button>
         
-        <button className="bg-gradient-to-r from-pink-500 to-red-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
+        <button onClick={() => onNavigate('health')} className="bg-gradient-to-r from-pink-500 to-red-600 text-white rounded-xl p-6 hover:shadow-lg transition-all transform hover:-translate-y-1">
           <Heart className="w-8 h-8 mb-3" />
           <h4 className="font-semibold mb-1">Health Check-in</h4>
           <p className="text-sm opacity-90">Update wellness status</p>

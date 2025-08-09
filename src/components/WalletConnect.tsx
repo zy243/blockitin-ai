@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Wallet, LogOut } from 'lucide-react'
 
 const WalletConnect: React.FC = () => {
@@ -6,10 +6,39 @@ const WalletConnect: React.FC = () => {
   const [address, setAddress] = useState('')
 
   const handleConnect = async () => {
-    // Placeholder for wallet connection logic
-    setIsConnected(true)
-    setAddress('0x1234...5678')
+    if (!(window as any).ethereum) {
+      alert('MetaMask not detected. Please install MetaMask.')
+      return
+    }
+    try {
+      const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' })
+      if (accounts && accounts.length > 0) {
+        setAddress(accounts[0])
+        setIsConnected(true)
+      }
+    } catch (error) {
+      console.error(error)
+      alert('Wallet connection failed')
+    }
   }
+
+  useEffect(() => {
+    const ethereum = (window as any).ethereum
+    if (!ethereum) return
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        setIsConnected(false)
+        setAddress('')
+      } else {
+        setAddress(accounts[0])
+        setIsConnected(true)
+      }
+    }
+    ethereum.on?.('accountsChanged', handleAccountsChanged)
+    return () => {
+      ethereum.removeListener?.('accountsChanged', handleAccountsChanged)
+    }
+  }, [])
 
   const handleDisconnect = () => {
     setIsConnected(false)
